@@ -16,29 +16,22 @@ curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup
 ```
 
 ## STEP2: Apply Re-SukiSu Modules
-### For Re-SukiSu Only
-1. Please run this on the project root dir
-    ```shell
-    git checkout su/resukisu
-    ```
-2. Locate to `arch/arm64/configs` and edit your defconfig file to add this
-    ```
-    CONFIG_KSU=y
-    CONFIG_KSU_MANUAL_HOOK=y
-    CONFIG_KSU_MANUAL_HOOK_AUTO_INPUT_HOOK=y
-    CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK=y
-    CONFIG_KSU_MANUAL_HOOK_AUTO_INITRC_HOOK=y
-    ```
+1. Checkout branch
 
-### For Re-SukiSu and SUSFS
-1. Please run this on the project root dir
-    ```shell
-    git checkout su/resukisu_susfs
-    ```
+   ### For Re-SukiSu Only
+   
+   ```shell
+   git checkout su/resukisu
+   ```
+   
+   ### For Re-SukiSu and SUSFS
+   ```shell
+   git checkout su/resukisu_susfs
+   ```
+
 2. Locate to `arch/arm64/configs` and edit your defconfig file to add this
     ```
     CONFIG_KSU=y
-    CONFIG_KSU_SUSFS=y
     CONFIG_KSU_MANUAL_HOOK=y
     CONFIG_KSU_MANUAL_HOOK_AUTO_INPUT_HOOK=y
     CONFIG_KSU_MANUAL_HOOK_AUTO_SETUID_HOOK=y
@@ -76,6 +69,15 @@ git clone https://github.com/mvaisakh/gcc-arm64 --depth=1 gcc64
 ```shell
 make O=out ARCH=arm64 YOUR_DEFCONFIG
 ```
+### FOR ReSukiSu AND SUSFS
+
+   Edit `out/.config` and set `CONFIG_KSU_SUSFS` to y
+   
+   Run this
+   ```shell
+   make O=out ARCH=arm64 oldconfig
+   ```
+   and answer script`s questions.
 
 ## STEP5: Build
 ```shell
