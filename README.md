@@ -1,5 +1,13 @@
 # For Re-SukiSu:
 
+**WARNING**
+
+Because of the API difference between ReSukiSu uses and SUSFS(v1.5), backport is too hard to continue.
+
+**SUSFS IS NOT READY FOR WORKING AND MAY KEEP NOT WORKING FOREVER**
+
+But you could use ReSukiSu only, it's working!
+
 ## STEP0: Clone Repos
 ```shell
 git clone https://github.com/oppo-source/android_kernel_modules_oppo_mt6833 android_kernel_oppo_mt6833_resukisu_susfs 
@@ -25,16 +33,25 @@ curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup
    ```
 
    ### For Re-SukiSu and SUSFS
-   **COMING SOON**
    ```shell
    git checkout su/resukisu_susfs
    ```
 
 2. Locate to `arch/arm64/configs` and edit your defconfig file to add this
+   ### For Re-SukiSu Only
+
     ```
     CONFIG_KSU=y
     CONFIG_KSU_MANUAL_HOOK=y
     ```
+
+   ### For Re-SukiSu and SUSFS
+
+   ```
+   CONFIG_KSU=y
+   CONFIG_KSU_SUSFS=y
+    ```
+
 ## STEP3: Install Environments
 ```shell
 sudo apt update && sudo apt install -y \
