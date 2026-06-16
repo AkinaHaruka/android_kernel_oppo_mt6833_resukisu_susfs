@@ -1,17 +1,23 @@
 # For Re-SukiSu:
 
-**WARNING**
+## Before Beginning
 
-Because of the API difference between ReSukiSu uses and SUSFS(v1.5), backport is too hard to continue.
+### SUSFS is NOT Available
+Due to significant API discrepancies between the version used by ReSukiSu and SUSFS (v1.5), backporting is too highly volatile to continue.
 
-**SUSFS IS NOT READY FOR WORKING AND MAY KEEP NOT WORKING FOREVER**
+**SUSFS IS CURRENTLY NON-FUNCTIONAL AND MAY REMAIN UNRESOLVED INDEFINITELY.** However, running ReSukiSu standalone works perfectly fine.
 
-But you could use ReSukiSu only, it's working!
+### Potential Stability & Security Risks
+To force compatibility with MTK's proprietary closed-source kernel modules, **MODULE_SIG, MODVERSION, AND CLANG CFI HAVE BEEN PRACTICALLY DISABLEMENT / BYPASSED.**
+
+Specifically, I have physically neutralized the CFI failure hooks. While CFI remains configured as `Enforcing` in the configuration file to maintain correct structure sizes, **the kernel will now blindly permit all indirect jumps.** Furthermore, MODVERSION verification functions have been stripped to bypass symbol version constraints.
+
+**This project heavily trades system security and hardening for root accessibility. By using this kernel, you acknowledge that your device may face unpredictable security vulnerabilities or kernel panics. You are solely responsible for any data loss, soft-bricks, or security breaches.**
 
 ## STEP0: Clone Repos
 ```shell
-git clone https://github.com/oppo-source/android_kernel_modules_oppo_mt6833 android_kernel_oppo_mt6833_resukisu_susfs 
-cd android_kernel_oppo_mt6833_resukisu_susfs 
+git clone https://github.com/oppo-source/android_kernel_modules_oppo_mt6833 android_kernel_4.14_oppo_mtk6833_resukisu_susfs
+cd android_kernel_4.14_oppo_mtk6833_resukisu_susfs
 git clone https://github.com/AkinaHaruka/android_kernel_oppo_mt6833_resukisu_susfs kernel-4.14
 cd kernel-4.14
 ```
@@ -23,84 +29,60 @@ Please run this on the project root dir
 curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
 ```
 
-## STEP2: Apply Re-SukiSu Modules
-1. Checkout branch
-
-   ### For Re-SukiSu Only
-
-   ```shell
-   git checkout su/resukisu
-   ```
-
-   ### For Re-SukiSu and SUSFS
-   ```shell
-   git checkout su/resukisu_susfs
-   ```
-
-2. Locate to `arch/arm64/configs` and edit your defconfig file to add this
-   ### For Re-SukiSu Only
-
-    ```
-    CONFIG_KSU=y
-    CONFIG_KSU_MANUAL_HOOK=y
-    ```
-
-   ### For Re-SukiSu and SUSFS
-
-   ```
-   CONFIG_KSU=y
-   CONFIG_KSU_SUSFS=y
-    ```
-
-## STEP3: Install Environments
+## STEP2: Get built config
+Get a available make config from your phones and place it into `out/.config`
 ```shell
-sudo apt update && sudo apt install -y \
-    binutils-aarch64-linux-gnu \
-    binutils-arm-linux-gnueabi \
-    build-essential \
-    bc \
-    bison \
-    flex \
-    libssl-dev \
-    libelf-dev \
-    gcc-aarch64-linux-gnu \
-    gcc-arm-linux-gnueabi \
-    git \
-    zip \
-    unzip \
-    curl \
-    make \
-    python3 \
-    libncurses5-dev \
-    device-tree-compiler
-```
-```shell
-mkdir -p toolchains && cd toolchains
-git clone https://github.com/kdrag0n/proton-clang.git --depth=1 clang
-git clone https://github.com/mvaisakh/gcc-arm --depth=1 gcc32
-git clone https://github.com/mvaisakh/gcc-arm64 --depth=1 gcc64
-```
-## STEP4: Generate Config
-```shell
-make O=out ARCH=arm64 YOUR_DEFCONFIG
+# To be reference only
+# run it on your phone
+zcat /proc/config.gz > /storage/emulated/0/Download/config.txt
+# run it on your computer
+mkdir out
+adb pull /storage/emulated/0/Download/config.txt out/
 ```
 
+## STEP3: Prepare Toolchains
+```shell
+git clone https://android.googlesource.com/platform/prebuilts/gcc/linux-x86/aarch64/aarch64-linux-android-4.9 -b ndk-release-r21 --depth=1 ./toolchains/gcc64
+git clone https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b llvm-r383902b/clang-r383902 --depth=1 ./toolchains/clang
+```
+## STEP4: Sync build config
+```shell
+make O=out ARCH=arm64 olddefconfig
+```
+Edit `out/.config` match this:
+```plain
+CONFIG_KSU=y
+CONFIG_KSU_MANUAL_HOOK=y
+# CONFIG_MODULE_SIG is not set
+CONFIG_THINLTO=y
+# CONFIG_LTO_NONE is not set
+CONFIG_LTO_CLANG=y
+CONFIG_CFI=y
+# CONFIG_CFI_PERMISSIVE is not set
+CONFIG_CFI_CLANG=y
+```
+And sync again
+```shell
+make O=out ARCH=arm64 olddefconfig
+```
 ## STEP5: Build
-```shell
-export CLANG_BIN=$(pwd)/toolchains/clang/bin
-
-make -j$(nproc) O=out ARCH=arm64 \
-    CC=$CLANG_BIN/clang \
-    LD=$CLANG_BIN/ld.lld \
-    AR=$CLANG_BIN/llvm-ar \
-    NM=$CLANG_BIN/llvm-nm \
-    OBJCOPY=$CLANG_BIN/llvm-objcopy \
-    OBJDUMP=$CLANG_BIN/llvm-objdump \
-    STRIP=$CLANG_BIN/llvm-strip \
-    CLANG_TRIPLE=aarch64-linux-gnu- \
-    CROSS_COMPILE=$(pwd)/toolchains/gcc64/bin/aarch64-linux-android- \
-    CROSS_COMPILE_ARM32=$(pwd)/toolchains/gcc32/bin/arm-linux-androideabi- \
-    HOSTCC=gcc \
-    HOSTCXX=g++ \
-    KCFLAGS="-fno-builtin-stpcpy -Wno-error=pointer-to-int-cast -Wno-pointer-to-int-cast -Wno-strict-prototypes -Wno-error=strict-prototypes" \
 ```
+chmod a+x ./build.sh
+./build.sh
+```
+
+## STEP6: Get build target files
+Your kernel is located in `out/arch/arm64/boot/Image`
+
+Use `magiskboot` tools to replace it into your `boot.img`
+
+## In Use
+When using SukiSu, Please avoid use `Hybrid Mount` as meta module, it may prevent your phone from booting.
+
+You can try using it.If you met boot loop, you can press up and down `VOL-` at least **3 times** to enable Safe Mode.
+
+
+# LICENSE
+Closing the source code after modified or using for commercial purposes is prohibited.
+
+Using for cheating in any online competitive game is prohibited.
